@@ -6,3 +6,6 @@ mte: mte.c
 
 run:
 	~/qemu-aarch64 ./mte
+
+clean:
+	rm mte
