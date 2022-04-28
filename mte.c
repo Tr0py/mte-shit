@@ -65,6 +65,8 @@ int main()
          * tag check faults (based on per-CPU preference) and allow all
          * non-zero tags in the randomly generated set.
          */
+        // !! QEMU USER MODE DOES NOT RECOGNIZE PR_MTE_TCF_ASYNC!!
+        // IF YOU ADD THAT FLAG, QEMU WILL TELL YOU 'Invalid argument'
         if (prctl(PR_SET_TAGGED_ADDR_CTRL,
                   PR_TAGGED_ADDR_ENABLE | PR_MTE_TCF_SYNC |
                   (0xfffe << PR_MTE_TAG_SHIFT),
@@ -98,6 +100,7 @@ int main()
         /* set the logical and allocation tags */
         a = (unsigned char *)insert_random_tag(a);
         set_tag(a);
+        // set_tag(a + 16);
 
         printf("%p\n", a);
 
@@ -105,12 +108,16 @@ int main()
         a[0] = 3;
         printf("a[0] = %hhu a[1] = %hhu\n", a[0], a[1]);
 
+        for (int i=0; i < 18; i++) { 
+            printf("Accessing a[%d]\n", i);
+            a[i] = 0x23;
+        }
         /*
          * If MTE is enabled correctly the next instruction will generate an
          * exception.
          */
         printf("Expecting SIGSEGV...\n");
-        a[16] = 0xdd;
+        a[15] = 0xdd;
 
         /* this should not be printed in the PR_MTE_TCF_SYNC mode */
         printf("...haven't got one\n");

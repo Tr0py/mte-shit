@@ -5,4 +5,4 @@ mte: mte.c
 	 $(CC) $(CFLAGS) $? -o $@ 
 
 run:
-	~/qemu-aarch64 ./a.out
+	~/qemu-aarch64 ./mte
