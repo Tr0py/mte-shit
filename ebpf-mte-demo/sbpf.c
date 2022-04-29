@@ -57,21 +57,20 @@
 #define ADD_TAG(x, tag) (void*)((long)(x) | ((long)tag << TAG_SHIFT))
 
 uint8_t ld(uint8_t *addr) {
-    printf("[ATTACKER]\ttry to load\t%p\n", addr);
-#ifdef SBPF_LDST
-    addr = ADD_TAG(addr, TAG_EBPF);
-    printf("[SBPF]\tactual load addr\t%p\n", addr);
-#endif
+    // printf("[ATTACKER]\ttry to load\t%p\n", addr);
     return *addr;
 }
 
 void st(uint8_t *addr, uint8_t val) {
-    printf("[ATTACKER]\ttry to store\t%p with 0x%x\n", addr, val);
-#ifdef SBPF_LDST
-    addr = ADD_TAG(addr, TAG_EBPF);
-    printf("[SBPF]\tactual store addr\t%p\n", addr);
-#endif
+    // printf("[ATTACKER]\ttry to store\t%p with 0x%x\n", addr, val);
     *addr = val;
+}
+
+uint8_t ld_s(uint8_t *addr) {
+    // printf("[ATTACKER]\ttry to load\t%p\n", addr);
+    addr = ADD_TAG(addr, TAG_EBPF);
+    printf("[TAG Enforced]\tactual load addr\t%p\n", addr);
+    return *addr;
 }
 
 int ebpf_set_tag(unsigned char* addr, size_t len, uint8_t tag) {
@@ -85,16 +84,23 @@ int ebpf_set_tag(unsigned char* addr, size_t len, uint8_t tag) {
 int ebpf_attacker(void* ebpf_dat, void* secret) {
 
     printf("======================\n"
-            "eBPF attacker read/write ebpf data on %p...\n"
+            "eBPF accessing ebpf data on %p...\n"
            "======================\n" , ebpf_dat);
-    ld(ebpf_dat);
-    st(ebpf_dat, 0xff);
+    printf("Test 0: EBPF accessing non-tagged normal data, without IR instrumentation...\n");
+    printf("The data on %p is 0x%x\n", ebpf_dat, ld(ebpf_dat));
+    printf("Test 1: EBPF accessing non-tagged normal data, with IR instrumentation...\n");
+    printf("The data on %p is 0x%x\n", ebpf_dat, ld_s(ebpf_dat));
+    // st(ebpf_dat, 0xff);
 
     printf("======================\n"
-            "eBPF attacker accessing secret data on %p...\n"
+            "eBPF accessing *normal* data on %p...\n"
             "======================\n", secret);
-    ld(secret);
-    st(secret, 0xff);
+    printf("Test 2: EBPF accessing non-tagged normal data, without IR instrumentation...\n");
+    printf("The secret on %p is 0x%x\n", secret, ld(secret));
+    printf("Test 3: EBPF accessing non-tagged normal data, with IR instrumentation...\n");
+    printf("The secret on %p is 0x%x\n", secret, ld_s(secret));
+    // ld(secret);
+    // st(secret, 0xff);
 
     return 0;
 }
@@ -104,6 +110,10 @@ int main()
         unsigned long page_sz = sysconf(_SC_PAGESIZE);
         unsigned long hwcap2 = getauxval(AT_HWCAP2);
         unsigned char *ebpf_dat, *secret, *tagged_ebpf_dat;
+
+        printf("======================\n"
+                "Initialzing ...\n"
+               "======================\n");
 
         /* check if MTE is present */
         if (!(hwcap2 & HWCAP2_MTE))
@@ -143,11 +153,16 @@ int main()
         ebpf_dat = a;
         secret = a + 0x100;
 
+        *ebpf_dat = 0x12;
+        *secret = 0x34;
+
         // ebpf_set_tag(ebpf_dat, 0x10, TAG_EBPF);
         tagged_ebpf_dat = ADD_TAG(ebpf_dat, TAG_EBPF);
         set_tag(tagged_ebpf_dat);
-        printf("tagged ebpf dat on: %p\n", tagged_ebpf_dat);
-        printf("secret data on: %p\n", secret);
+        printf("ebpf data on:      \t%p\n", ebpf_dat);
+        printf("tagged ebpf data on:\t%p\n", tagged_ebpf_dat);
+        printf("normal data on:    \t%p\n", secret);
+
 
         ebpf_attacker(tagged_ebpf_dat, secret);
 
