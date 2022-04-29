@@ -86,9 +86,9 @@ int ebpf_attacker(void* ebpf_dat, void* secret) {
     printf("======================\n"
             "eBPF accessing ebpf data on %p...\n"
            "======================\n" , ebpf_dat);
-    printf("Test 0: EBPF accessing non-tagged normal data, without IR instrumentation...\n");
+    printf("Test 0: EBPF accessing tagged ebpf data, without IR instrumentation...\n");
     printf("The data on %p is 0x%x\n", ebpf_dat, ld(ebpf_dat));
-    printf("Test 1: EBPF accessing non-tagged normal data, with IR instrumentation...\n");
+    printf("Test 1: EBPF accessing tagged ebpf data, with IR instrumentation...\n");
     printf("The data on %p is 0x%x\n", ebpf_dat, ld_s(ebpf_dat));
     // st(ebpf_dat, 0xff);
 
