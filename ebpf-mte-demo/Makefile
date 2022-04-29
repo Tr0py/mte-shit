@@ -10,4 +10,4 @@ run:
 	~/qemu-aarch64 ebpf
 
 clean:
-	rm mte
+	rm ebpf
